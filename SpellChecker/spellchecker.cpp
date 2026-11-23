@@ -7,38 +7,29 @@
  *           A01798554 Omar Chávez
  *----------------------------------------------------------*/
 
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <regex>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-struct word {
+struct Word {
   std::string text;
-  int line;
-  int column;
+  int row;
+  int col;
 };
 
-bool read_words(const std::string file_path, std::vector<word> &words) {
-  std::ifstream input_file(file_path);
-  if (input_file.fail()) {
-    return false;
-  }
-  std::regex reg_exp("[a-zA-Z]+");
-  std::smatch match;
-  std::string text;
-  int line = 0;
-  int column = 0;
-  while (std::getline(input_file, text)) {
-    line++;
-    column = 1;
-    while (std::regex_search(text, match, reg_exp)) {
-      column += match.position();
-      words.push_back({match.str(), line, column});
-      column += match.length();
-      text = match.suffix().str();
-    }
-  }
-  return true;
+typedef std::unordered_map<std::string, std::vector<std::string>> soundex_map;
+
+std::string lowercase(std::string word) {
+  std::transform(word.begin(), word.end(), word.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return word;
 }
 
 std::string soundex(std::string word) {
@@ -72,17 +63,75 @@ std::string soundex(std::string word) {
   return code;
 }
 
+void map_from_dict(const std::string file_path, soundex_map &soundex_words) {
+  std::ifstream file(file_path);
+  if (file.fail()) {
+    throw std::runtime_error("Unable to open dictionary: " + file_path);
+  }
+
+  std::string word;
+  while (std::getline(file, word)) {
+    if (word.empty()) {
+      continue;
+    }
+    word = lowercase(word);
+    soundex_words[soundex(word)].push_back(word);
+  }
+}
+
+bool contains_word(const std::string &val, const std::vector<std::string> &words) {
+  return std::binary_search(words.begin(), words.end(), val);
+}
+
+std::vector<Word> unknown_words(const std::string &file_path, soundex_map &soundex_words) {
+  std::ifstream file(file_path);
+  if (file.fail()) {
+    throw std::runtime_error("Unable to open file: " + file_path);
+  }
+
+  std::vector<Word> words;
+  std::unordered_set<std::string> reported;
+
+  const std::regex reg_exp("[a-zA-Z]+");
+  std::smatch match;
+  std::string text;
+  int row = 0;
+  int col = 0;
+
+  while (std::getline(file, text)) {
+    row++;
+    col = 1;
+    while (std::regex_search(text, match, reg_exp)) {
+      col += match.position();
+
+      std::string word = match.str();
+      std::string normalized = lowercase(word);
+      std::string soundex_code = soundex(normalized);
+
+      auto it = soundex_words.find(soundex_code);
+      if ((it == soundex_words.end() || !contains_word(normalized, it->second)) && reported.insert(normalized).second) {
+        words.push_back({.text = word, .row = row, .col = col});
+      }
+
+      col += match.length();
+      text = match.suffix().str();
+    }
+  }
+
+  return words;
+}
+
 int main(int argc, char *argv[]) {
-  // std::string file_name = "tooinkle.txt";
-  // std::vector<word> words;
-  //
-  // if (read_words(file_name, words)) {
-  //   for (word w : words) {
-  //     std::cout << w.text << "  (line " << w.line << ", column " << w.column << ")\n";
-  //   }
-  // } else {
-  //   std::cout << "Unable to read file: " << file_name << "\n";
-  // }
-  std::cout << soundex("Monterrey") << '\n';
+  // Agregar comparación argc y lectura de argv para el archivo
+
+  soundex_map soundex_words;
+  map_from_dict("words.txt", soundex_words);
+
+  // Tests
+  std::vector<Word> ws = unknown_words("tooinkle.txt", soundex_words);
+  for (const auto w : ws) {
+    std::cout << w.row << ',' << w.col << '\t' << w.text << '\n';
+  }
+
   return 0;
 }
