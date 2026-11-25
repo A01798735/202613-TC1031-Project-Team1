@@ -121,16 +121,48 @@ std::vector<Word> unknown_words(const std::string &file_path, soundex_map &sound
   return words;
 }
 
+void read_file(const std::string& file_name, std::vector<Word>& words) {
+  std::ifstream file(file_name);
+
+  if (file.fail()) {
+    std::cerr << "Unable to open file: " << file_name << "\n";
+    std::exit(1);
+  }
+
+  const std::regex reg_exp("[a-zA-Z]+");
+  std::string text;
+  int row = 0;
+
+  while (std::getline(file, text)) {
+    row++;
+    int col = 1;
+    std::smatch match;
+
+    while (std::regex_search(text, match, reg_exp)) {
+      col += static_cast<int>(match.position());
+      words.push_back({.text = match.str(), .row = row, .col = col});
+      col += static_cast<int>(match.length());
+      text = match.suffix().str();
+    }
+  }
+
+  file.close();
+}
+
 int main(int argc, char *argv[]) {
   // Agregar comparación argc y lectura de argv para el archivo
+  if (argc != 2) {
+        std::cerr << "Please specify input file name.\n";
+        std::exit(1);
+    }
 
   soundex_map soundex_words;
   map_from_dict("words.txt", soundex_words);
 
   // Tests
-  std::vector<Word> ws = unknown_words("tooinkle.txt", soundex_words);
+  std::vector<Word> ws = unknown_words(argv[1], soundex_words);
   for (const auto w : ws) {
-    std::cout << w.row << ',' << w.col << '\t' << w.text << '\n';
+    std::cout << "Unrecognized word: \"" << w.text << "\". First found at line " << w.row << ", column " << w.col << ".\nSuggestions:\n";
   }
 
   return 0;
