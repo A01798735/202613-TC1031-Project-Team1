@@ -150,7 +150,6 @@ void read_file(const std::string& file_name, std::vector<Word>& words) {
 }
 
 int main(int argc, char *argv[]) {
-  // Agregar comparación argc y lectura de argv para el archivo
   if (argc != 2) {
         std::cerr << "Please specify input file name.\n";
         std::exit(1);
