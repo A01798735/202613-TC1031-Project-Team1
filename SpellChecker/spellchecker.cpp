@@ -162,7 +162,23 @@ int main(int argc, char *argv[]) {
   // Tests
   std::vector<Word> ws = unknown_words(argv[1], soundex_words);
   for (const auto w : ws) {
-    std::cout << "Unrecognized word: \"" << w.text << "\". First found at line " << w.row << ", column " << w.col << ".\nSuggestions:\n";
+    std::cout << "Unrecognized word: \"" << w.text
+    << "\". First found at line " << w.row << ", column " << w.col
+    << ".\n";
+
+    const auto suggestions = soundex_words.find(soundex(lowercase(w.text)));
+    if (suggestions == soundex_words.end() or suggestions->second.empty()) {
+      std::cout << "No suggestions.\n";
+    } else {
+      std::cout << "Suggestions:\n";
+      for (size_t i = 0; i < suggestions->second.size(); i++) {
+        if (i > 0) {
+          std::cout << ", ";
+        }
+        std::cout << suggestions->second[i];
+      }
+      std::cout << '\n';
+    }
   }
 
   return 0;
