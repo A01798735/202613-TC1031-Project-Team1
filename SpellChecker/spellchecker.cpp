@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
   // Tests
   std::vector<Word> ws = unknown_words(argv[1], soundex_words);
   for (const auto w : ws) {
-    std::cout << "Unrecognized word: \"" << w.text
+    std::cout << "\nUnrecognized word: \"" << w.text
     << "\". First found at line " << w.row << ", column " << w.col
     << ".\n";
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     if (suggestions == soundex_words.end() or suggestions->second.empty()) {
       std::cout << "No suggestions.\n";
     } else {
-      std::cout << "Suggestions:\n";
+      std::cout << "Suggestions: ";
       for (size_t i = 0; i < suggestions->second.size(); i++) {
         if (i > 0) {
           std::cout << ", ";
